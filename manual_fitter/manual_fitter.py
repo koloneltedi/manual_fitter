@@ -39,7 +39,7 @@ class PlotObject:
         self.x_points = [self.x0,self.x1]
         self.y_points = [self.y0,self.y1]
 
-        self.zi = self.make_linecut(self.x_points[0],self.y_points[0],self.x_points[1],self.y_points[1])
+        self.zi = self._make_linecut(self.x_points[0],self.y_points[0],self.x_points[1],self.y_points[1])
 
     def parse_dataset(self,ds, charge_stability,differential):
         # Parse Data
@@ -73,21 +73,22 @@ class PlotObject:
         
 
 
-    def make_linecut(self,x0,y0,x1,y1):
+    def _make_linecut(self,x0,y0,x1,y1):
         #Line cut function    
         
         cubic = self.cubic
+        x,y,z = self.x, self.y,self.z
         
         #-- Extract the line...
         # Make a line with "num" points...
     
         
         # convert to pixel values
-        x_plen, y_plen = np.size(self.x),np.size(self.y)
-        x_len, y_len = max(self.x)-min(self.x), max(self.y)-min(self.y)
+        x_plen, y_plen = np.size(x),np.size(y)
+        x_len, y_len = max(x)-min(x), max(y)-min(y)
         
-        x0_p, y0_p = (x0-min(self.x))/x_len*x_plen, (max(self.y)-y0)/y_len*y_plen # These are in _pixel_ coordinates!!
-        x1_p, y1_p = (x1-min(self.x))/x_len*x_plen, (max(self.y)-y1)/y_len*y_plen
+        x0_p, y0_p = (x0-min(x))/x_len*x_plen, (max(y)-y0)/y_len*y_plen # These are in _pixel_ coordinates!!
+        x1_p, y1_p = (x1-min(x))/x_len*x_plen, (max(y)-y1)/y_len*y_plen
         
         x0_p, y0_p, x1_p,y1_p = np.array(np.round([x0_p+1,y0_p-1,x1_p-1,y1_p-1]),dtype=int)
         
@@ -96,19 +97,19 @@ class PlotObject:
             x_cut, y_cut = np.linspace(x0_p, x1_p, num), np.linspace(y0_p, y1_p, num)
         
             # Extract the values along the line, using cubic interpolation
-            zi = scipy.ndimage.map_coordinates(self.z.T, np.vstack((x_cut,y_cut)))
+            zi = scipy.ndimage.map_coordinates(z.T, np.vstack((x_cut,y_cut)))
         
         else:
             num = int(np.hypot(x1_p-x0_p, y1_p-y0_p))
             x_cut, y_cut = np.linspace(x0_p, x1_p, num), np.linspace(y0_p, y1_p, num)
         
             # Extract the values along the line
-            zi = self.z.T[x_cut.astype(int), y_cut.astype(int)]
+            zi = z.T[x_cut.astype(int), y_cut.astype(int)]
         
         return zi
 
     
-    def update_slider(self,val,xy='x',ind=0):
+    def _update_slider(self,val,xy='x',ind=0):
     
         if xy=='x':
             self.x_points[ind] = self.x_sliders[ind].val
@@ -118,22 +119,22 @@ class PlotObject:
             self.y_points[ind] = self.y_sliders[ind].val  
             if self.bfix.value_selected=='hori':
                 self.y_points[1-ind] = self.y_sliders[ind].val
-        self.set()
+        self._set()
         
     
-    def update_xsstart(self,val):
-        self.update_slider(val,xy='x',ind=0)
+    def _update_xsstart(self,val):
+        self._update_slider(val,xy='x',ind=0)
         
-    def update_ysstart(self,val):
-        self.update_slider(val,xy='y',ind=0)
+    def _update_ysstart(self,val):
+        self._update_slider(val,xy='y',ind=0)
     
-    def update_xsend(self,val):
-        self.update_slider(val,xy='x',ind=1)
+    def _update_xsend(self,val):
+        self._update_slider(val,xy='x',ind=1)
         
-    def update_ysend(self,val):
-        self.update_slider(val,xy='y',ind=1)
+    def _update_ysend(self,val):
+        self._update_slider(val,xy='y',ind=1)
     
-    def update_text(self,expression,xy='x',ind=0):
+    def _update_text(self,expression,xy='x',ind=0):
         
         if xy=='x':
             self.x_points[ind] = float(self.x_textboxes[ind].text)
@@ -157,22 +158,22 @@ class PlotObject:
                 self.y_sliders[1-ind].eventson=True
         slope = (self.y_points[1]-self.y_points[0])/(self.x_points[1]-self.x_points[0])
         self.slope_text.set_text(f"Slope: {slope:4.3}")
-        self.set()
+        self._set()
     
-    def update_xtstart(self,expression):
-        self.update_text(expression,xy='x',ind=0)
+    def _update_xtstart(self,expression):
+        self._update_text(expression,xy='x',ind=0)
         
-    def update_ytstart(self,expression):
-        self.update_text(expression,xy='y',ind=0)
+    def _update_ytstart(self,expression):
+        self._update_text(expression,xy='y',ind=0)
     
-    def update_xtend(self,expression):
-        self.update_text(expression,xy='x',ind=1)
+    def _update_xtend(self,expression):
+        self._update_text(expression,xy='x',ind=1)
     
-    def update_ytend(self,expression):
-        self.update_text(expression,xy='y',ind=1)
+    def _update_ytend(self,expression):
+        self._update_text(expression,xy='y',ind=1)
     
     
-    def reset(self,event):
+    def _reset(self,event):
 
         #reset the values
         self.x_points = [self.x0,self.x1]
@@ -181,33 +182,38 @@ class PlotObject:
           self.y_sliders[i].reset()
           self.x_sliders[i].reset()   
         self.bfix.set_active(0)
-        self.set()
+        self._set()
         
     
-    def set(self):
+    def _set(self):
         
-        self.l0.set_xdata(self.x_points[0])
-        self.l0.set_ydata(self.y_points[0])
-        self.l1.set_xdata(self.x_points[1])
-        self.l1.set_ydata(self.y_points[1])
-        self.m.set_ydata(self.y_points)
-        self.m.set_xdata(self.x_points)
+        x_points, y_points = self.x_points, self.y_points
         
-        self.zi = self.make_linecut(self.x_points[0],self.y_points[0],self.x_points[1],self.y_points[1])
-        self.linecut.set_ydata(self.zi)
-        self.linecut_energy = 1000*(self.lever_x*(self.x_points[1]-self.x_points[0])+self.lever_y*(self.y_points[1]-self.y_points[0])) #meV
-        self.linecut.set_xdata(np.linspace(0,self.linecut_energy,np.size(self.zi)))
+        self.l0.set_xdata(x_points[0])
+        self.l0.set_ydata(y_points[0])
+        self.l1.set_xdata(x_points[1])
+        self.l1.set_ydata(y_points[1])
+        self.m.set_ydata(y_points)
+        self.m.set_xdata(x_points)
         
-        self.line_s.set_ydata(self.zi[0])
+        zi = self._make_linecut(x_points[0],y_points[0],x_points[1],y_points[1])
+        linecut_energy = 1000*(self.lever_x*(x_points[1]-x_points[0])+self.lever_y*(y_points[1]-y_points[0])) #meV
+        
+        self.linecut.set_ydata(zi)
+        self.linecut.set_xdata(np.linspace(0,linecut_energy,np.size(zi)))
+        
+        self.line_s.set_ydata(zi[0])
         self.line_s.set_xdata(0)
-        self.line_f.set_ydata(self.zi[-1])
-        self.line_f.set_xdata(self.linecut_energy)
-        self.axes[1].set_xlim([-0.05*self.linecut_energy,1.05*self.linecut_energy])
+        self.line_f.set_ydata(zi[-1])
+        self.line_f.set_xdata(linecut_energy)
+        self.axes[1].set_xlim([-0.05*linecut_energy,1.05*linecut_energy])
         
-        # redraw canvas while idle
+        self.linecut_energy = linecut_energy
+        self.zi = zi 
+        # redraw canvas while idle      
         self.fig1.canvas.draw_idle()
         
-    def button_press_callback(self,event):
+    def _button_press_callback(self,event):
         'whenever a mouse button is pressed'
 
         if event.inaxes is None:
@@ -215,14 +221,16 @@ class PlotObject:
         if event.button != 1:
             return
         #print(pind)
-        self.pind = self.get_ind_under_point(event)
+        self.pind = self._get_ind_under_point(event)
         
-    def button_release_callback(self,event):
+    def _button_release_callback(self,event):
         'whenever a mouse button is released'
+        
+        x_points, y_points = self.x_points, self.y_points
         
         if event.button != 1:
             return
-        slope = (self.y_points[1]-self.y_points[0])/(self.x_points[1]-self.x_points[0])
+        slope = (y_points[1]-y_points[0])/(x_points[1]-x_points[0])
         self.slope_text.set_text(f"Slope: {slope:4.3}")
         self.pind = None
         for i in range(2):
@@ -235,8 +243,9 @@ class PlotObject:
     
         
     
-    def get_ind_under_point(self,event):
+    def _get_ind_under_point(self,event):
         'get the index of the vertex under point if within epsilon tolerance'
+        x_points, y_points = self.x_points, self.y_points
     
         # display coords
         #print('display x is: {0}; display y is: {1}'.format(event.x,event.y))
@@ -244,8 +253,8 @@ class PlotObject:
         tinv = self.axes[0].transData 
         xy = t.transform([event.x,event.y])
         #print('data x is: {0}; data y is: {1}'.format(xy[0],xy[1]))
-        xr = np.reshape(self.x_points,(np.shape(self.x_points)[0],1))
-        yr = np.reshape(self.y_points,(np.shape(self.y_points)[0],1))
+        xr = np.reshape(x_points,(np.shape(x_points)[0],1))
+        yr = np.reshape(y_points,(np.shape(y_points)[0],1))
         xy_vals = np.append(xr,yr,1)
         xyt = tinv.transform(xy_vals)
         xt, yt = xyt[:, 0], xyt[:, 1]
@@ -260,7 +269,7 @@ class PlotObject:
         #print(ind)
         return ind
     
-    def motion_notify_callback(self,event):
+    def _motion_notify_callback(self,event):
         
         'on mouse movement'
 
@@ -278,9 +287,7 @@ class PlotObject:
         self.y_points[self.pind] = event.ydata
         self.x_points[self.pind] = event.xdata
     
-        
-        
-    
+            
         # update curve via sliders and draw
     
         self.y_sliders[self.pind].set_val(self.y_points[self.pind])
@@ -303,7 +310,7 @@ class PlotObject:
     
         self.fig1.canvas.draw_idle()
         
-    def calc_max(self,event):
+    def _calc_max(self,event):
         max_idx = np.argmax(self.zi)
         current_max = self.zi[max_idx]
         
@@ -340,6 +347,9 @@ class PlotObject:
             Cut-off the maximum value of the plot. If None, all values will be considered 
         """
         
+        x_points, y_points = self.x_points, self.y_points
+        x,y,z = self.x,self.y,self.z
+        zi = self.zi
         
         # axes=[]
         self.fig1, self.axes = plt.subplots(ncols=2)
@@ -347,7 +357,7 @@ class PlotObject:
         # axes.append(ax0)
         # axes.append(ax1)
         self.fig1.subplots_adjust(right=0.7)
-        im = self.axes[0].imshow(self.z,extent=[np.min(self.x),np.max(self.x),np.min(self.y),np.max(self.y)],aspect='auto',vmax=vmax)
+        im = self.axes[0].imshow(z,extent=[np.min(x),np.max(x),np.min(y),np.max(y)],aspect='auto',vmax=vmax)
         self.m, = self.axes[0].plot([self.x0, self.x1], [self.y0, self.y1], 'r-')
         self.l0, = self.axes[0].plot([self.x0], [self.y0], 'yo')
         self.l1, = self.axes[0].plot([self.x1], [self.y1], 'ko')
@@ -356,17 +366,17 @@ class PlotObject:
 
         plt.colorbar(im,ax=self.axes[0])
 
-        self.linecut_energy = 1000*(self.lever_x*(self.x_points[1]-self.x_points[0])+self.lever_y*(self.y_points[1]-self.y_points[0]))
-        self.linecut, = self.axes[1].plot(np.linspace(0,self.linecut_energy,np.size(self.zi)),self.zi,'r')
-        self.line_s, = self.axes[1].plot(0,self.zi[0],'yo')
-        self.line_f, = self.axes[1].plot(self.linecut_energy,self.zi[-1],'ko')
+        self.linecut_energy = 1000*(self.lever_x*(x_points[1]-x_points[0])+self.lever_y*(y_points[1]-y_points[0]))
+        self.linecut, = self.axes[1].plot(np.linspace(0,self.linecut_energy,np.size(zi)),zi,'r')
+        self.line_s, = self.axes[1].plot(0,zi[0],'yo')
+        self.line_f, = self.axes[1].plot(self.linecut_energy,zi[-1],'ko')
 
         self.max_line, = self.axes[1].plot([10*self.linecut_energy,10*self.linecut_energy],[0,0],'b')
         self.left_HM_line, = self.axes[1].plot([10*self.linecut_energy,10*self.linecut_energy],[0,1],'b')
         self.right_HM_line, = self.axes[1].plot([10*self.linecut_energy,10*self.linecut_energy],[0,1],'b')
 
         self.axes[1].set_xlim([-0.05*self.linecut_energy,1.05*self.linecut_energy])
-        self.axes[1].set_ylim([np.min(self.z),np.max(self.z)])
+        self.axes[1].set_ylim([np.min(z),np.max(z)])
         self.axes[1].set_ylabel(r'$G (G_0=2e^2/h)$')
         self.axes[1].set_xlabel('E_dot (meV assuming some lever arm)')
 
@@ -381,8 +391,8 @@ class PlotObject:
             axamp_x = plt.axes([0.74, 0.8-(i*0.1), 0.12, 0.02])
             axamp_y = plt.axes([0.74, 0.75-(i*0.1), 0.12, 0.02])
             # Slider
-            xs = Slider(axamp_x, 'x{0}'.format(i), min(self.x), max(self.x), valinit=self.x_points[i])
-            ys = Slider(axamp_y, 'y{0}'.format(i), min(self.y), max(self.y), valinit=self.y_points[i])
+            xs = Slider(axamp_x, 'x{0}'.format(i), min(x), max(x), valinit=x_points[i])
+            ys = Slider(axamp_y, 'y{0}'.format(i), min(y), max(y), valinit=y_points[i])
             
             xs.valtext.set_visible(False)
             ys.valtext.set_visible(False)
@@ -393,46 +403,46 @@ class PlotObject:
             axamp_x = plt.axes([0.87, 0.8-(i*0.1), 0.08, 0.03])
             axamp_y = plt.axes([0.87, 0.75-(i*0.1), 0.08, 0.03])
             
-            xt = TextBox(axamp_x,label=None, initial=f"{self.x_points[i]:4.3f}")
-            yt = TextBox(axamp_y,label=None, initial=f"{self.y_points[i]:4.3f}")
+            xt = TextBox(axamp_x,label=None, initial=f"{x_points[i]:4.3f}")
+            yt = TextBox(axamp_y,label=None, initial=f"{y_points[i]:4.3f}")
             
             self.x_textboxes.append(xt)
             self.y_textboxes.append(yt)
             
 
-        self.x_sliders[0].on_changed(self.update_xsstart)
-        self.y_sliders[0].on_changed(self.update_ysstart)
-        self.x_sliders[1].on_changed(self.update_xsend)
-        self.y_sliders[1].on_changed(self.update_ysend)
+        self.x_sliders[0].on_changed(self._update_xsstart)
+        self.y_sliders[0].on_changed(self._update_ysstart)
+        self.x_sliders[1].on_changed(self._update_xsend)
+        self.y_sliders[1].on_changed(self._update_ysend)
 
-        self.x_textboxes[0].on_submit(self.update_xtstart)
-        self.y_textboxes[0].on_submit(self.update_ytstart)
-        self.x_textboxes[1].on_submit(self.update_xtend)
-        self.y_textboxes[1].on_submit(self.update_ytend)
+        self.x_textboxes[0].on_submit(self._update_xtstart)
+        self.y_textboxes[0].on_submit(self._update_ytstart)
+        self.x_textboxes[1].on_submit(self._update_xtend)
+        self.y_textboxes[1].on_submit(self._update_ytend)
             
 
         axres = plt.axes([0.74, 0.8-((5)*0.05), 0.12, 0.02])
         self.bres = Button(axres, 'Reset')
-        self.bres.on_clicked(self.reset)
+        self.bres.on_clicked(self._reset)
 
         axres = plt.axes([0.74, 0.8-((8)*0.05), 0.12, 0.15])
         self.bfix = RadioButtons(axres, ['free','hori','verti','fixed'])
 
         # axinfo = plt.axes([0.86, 0.8-((8)*0.05), 0.12, 0.15])
 
-        self.slope = (self.y_points[1]-self.y_points[0])/(self.x_points[1]-self.x_points[0])
+        self.slope = (y_points[1]-y_points[0])/(x_points[1]-x_points[0])
         box_props = dict(boxstyle='round',facecolor='white')
         self.slope_text = axres.text(0,-0.5,  f"Slope: {self.slope:4.3}",bbox=box_props)
 
         axmax = plt.axes([0.74, 0.2, 0.15, 0.02])
         self.bmax = Button(axmax, 'Calc Max:')
-        self.bmax.on_clicked(self.calc_max)
+        self.bmax.on_clicked(self._calc_max)
         max_val = 0.0
         FWHM = 0.0
         box_props = dict(boxstyle='round',facecolor='white')
         self.max_text = axres.text(0,-1,  f"Max: {max_val:4.3}G0\nFWHM: {1000*FWHM:4.3}mV",bbox=box_props)
 
-        self.fig1.canvas.mpl_connect('button_press_event', self.button_press_callback)
-        self.fig1.canvas.mpl_connect('button_release_event', self.button_release_callback)
-        self.fig1.canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
+        self.fig1.canvas.mpl_connect('button_press_event', self._button_press_callback)
+        self.fig1.canvas.mpl_connect('button_release_event', self._button_release_callback)
+        self.fig1.canvas.mpl_connect('motion_notify_event', self._motion_notify_callback)
     
