@@ -11,7 +11,23 @@ from matplotlib import pyplot as plt
 from matplotlib.widgets import Slider, Button, TextBox, RadioButtons
 
 class PlotObject:
-    def __init__(self,ds,charge_stability=True,differential=False,cubic=True):
+    """
+    The class which enables all the plotting. Very ugly use of classes. Very ugly use of object properties. Might improve it with time
+    """
+    def __init__(self,ds,charge_stability,differential=False,cubic=True):
+        """
+        Initialised the plotting class. Now it is still in a single class, and a lot of parameters are global. 
+        Parameters
+        ----------
+        charge_stability : boolean
+            If plotting a charge_stability diagram as opposed to a Coulomb Diamond (make False in that case)
+        differential : boolean ,optional
+            Take the differential in the x-axis. Differential is taken away from 0, i.e. it is inverted for negative values of x
+        cubic: boolean, optional
+            Smooth the heatmap with a cubic curve, before taking a linecut. Otherwise it is nearest neighbour
+            .. version added:: 0.1
+        """
+        
         self.cubic = cubic
         self.parse_dataset(ds,charge_stability,differential)
         self.x0, self.y0 = min(self.x)+0.001, min(self.y)+0.001
@@ -316,6 +332,15 @@ class PlotObject:
         self.fig1.canvas.draw_idle()
     
     def make_plot(self,vmax=None):
+        """
+        Make the manual-fitting window and GUI
+        Parameters
+        ----------
+        vmax : float, optional
+            Cut-off the maximum value of the plot. If None, all values will be considered 
+        """
+        
+        
         # axes=[]
         self.fig1, self.axes = plt.subplots(ncols=2)
         # fig1, ax1 = plt.subplots(ncols=1)
