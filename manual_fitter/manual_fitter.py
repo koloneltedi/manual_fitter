@@ -11,6 +11,7 @@ import scipy
 import scipy.ndimage
 from matplotlib import pyplot as plt
 from matplotlib.widgets import Slider, Button, TextBox, RadioButtons
+from matplotlib.colors import LogNorm
 import pickle
 import datetime
 from copy import copy,deepcopy
@@ -62,6 +63,7 @@ class PlotObject:
         self.z = ds.m1.z()
         if charge_stability: #If charge stability
             self.z = np.flip(self.z) ### FLIP THIS BECAUSE DATABROWSER/BASE IS WEIRD. Check if always needed.
+            # self.z = np.flipud(self.z) ### FLIP THIS BECAUSE DATABROWSER/BASE IS WEIRD. Check if always needed.
             xcut = 2
         else: # Coulomb Diamonds
             if differential:
@@ -69,7 +71,9 @@ class PlotObject:
                 dz = (self.z-np.roll(self.z,1,axis=1))*np.tile(np.sign(self.x),(np.size(self.y),1))
                 self.z = dz/dx
                 xcut = 10 
-    
+            else:
+                xcut = 1
+        
            
         self.x = self.x[xcut:-xcut]
         self.z = self.z[:,xcut:-xcut]
@@ -264,21 +268,23 @@ class PlotObject:
         start_point_pos_ind = self._vertID_to_posind(start_point_vertID)
         end_point_pos_ind = self._vertID_to_posind(end_point_vertID)
         
-        zi = self._make_linecut(x_points[start_point_pos_ind],y_points[start_point_pos_ind],x_points[end_point_pos_ind],y_points[end_point_pos_ind])
-        linecut_energy = 1000*(self.lever_x*(x_points[end_point_pos_ind]-x_points[start_point_pos_ind])+self.lever_y*(y_points[end_point_pos_ind]-y_points[start_point_pos_ind])) #meV
+        if len(self.axes)==2:
         
-        self.linecut.set_ydata(zi)
-        self.linecut.set_xdata(np.linspace(0,linecut_energy,np.size(zi)))
-        
-        self.line_s.set_ydata(zi[0])
-        self.line_s.set_xdata(0)
-        self.line_f.set_ydata(zi[-1])
-        self.line_f.set_xdata(linecut_energy)
-        self.axes[1].set_xlim([-0.05*linecut_energy,1.05*linecut_energy])
-        
-        self.linecut_energy = linecut_energy
-        self.zi = zi 
-        # redraw canvas while idle      
+            zi = self._make_linecut(x_points[start_point_pos_ind],y_points[start_point_pos_ind],x_points[end_point_pos_ind],y_points[end_point_pos_ind])
+            linecut_energy = 1000*(self.lever_x*(x_points[end_point_pos_ind]-x_points[start_point_pos_ind])+self.lever_y*(y_points[end_point_pos_ind]-y_points[start_point_pos_ind])) #meV
+            
+            self.linecut.set_ydata(zi)
+            self.linecut.set_xdata(np.linspace(0,linecut_energy,np.size(zi)))
+            
+            self.line_s.set_ydata(zi[0])
+            self.line_s.set_xdata(0)
+            self.line_f.set_ydata(zi[-1])
+            self.line_f.set_xdata(linecut_energy)
+            self.axes[1].set_xlim([-0.05*linecut_energy,1.05*linecut_energy])
+            
+            self.linecut_energy = linecut_energy
+            self.zi = zi 
+            # redraw canvas while idle      
         self.fig1.canvas.draw_idle()
         
     def _button_press_callback(self,event):
@@ -437,8 +443,26 @@ class PlotObject:
     
     
         self.fig1.canvas.draw_idle()
+    
+    def plot_bare(self,vmax=None,lognorm = False):
+        
+        x,y,z = self.x,self.y,self.z
+        
+        fig, ax = plt.subplots(ncols=1)
             
-    def make_plot(self,vmax=None):
+        if lognorm:
+            im = ax.imshow(np.abs(z),extent=[np.min(x),np.max(x),np.min(y),np.max(y)],aspect='auto',vmax=vmax,norm=LogNorm(vmin=1e-4, vmax=1e-1))
+        else:
+            im = ax.imshow(z,extent=[np.min(x),np.max(x),np.min(y),np.max(y)],aspect='auto',vmax=vmax)
+        
+        ax.set_xlabel('SL (V)')
+        ax.set_ylabel('BL (V)')
+
+        plt.colorbar(im,ax=ax,label=r'$G (G_0=2e^2/h)$')
+        
+        return fig,ax
+        
+    def make_plot(self,vmax=None,max_plotter = False,lognorm = False):
         """
         Make the manual-fitting window and GUI
         Parameters
@@ -452,12 +476,20 @@ class PlotObject:
         zi = self.zi
         
         # axes=[]
-        self.fig1, self.axes = plt.subplots(ncols=2)
+        if max_plotter:
+            self.fig1, self.axes = plt.subplots(ncols=2)
+        else:
+            self.fig1, self.axes = plt.subplots(ncols=1)
+            self.axes = [self.axes]
+            
         # fig1, ax1 = plt.subplots(ncols=1)
         # axes.append(ax0)
         # axes.append(ax1)
         self.fig1.subplots_adjust(right=0.7)
-        im = self.axes[0].imshow(z,extent=[np.min(x),np.max(x),np.min(y),np.max(y)],aspect='auto',vmax=vmax)
+        if lognorm:
+            im = self.axes[0].imshow(np.abs(z),extent=[np.min(x),np.max(x),np.min(y),np.max(y)],aspect='auto',vmax=vmax,norm=LogNorm(vmin=1e-4, vmax=1e-1))
+        else:
+            im = self.axes[0].imshow(z,extent=[np.min(x),np.max(x),np.min(y),np.max(y)],aspect='auto',vmax=vmax)
         m, = self.axes[0].plot([self.x0, self.x1], [self.y0, self.y1], 'y-')
         
         self.edge_collection['low']['plot_instance'].append(m)
@@ -474,21 +506,22 @@ class PlotObject:
         self.axes[0].set_xlabel('SL (V)')
         self.axes[0].set_ylabel('BL (V)')
 
-        plt.colorbar(im,ax=self.axes[0])
-
-        self.linecut_energy = 1000*(self.lever_x*(x_points[1]-x_points[0])+self.lever_y*(y_points[1]-y_points[0]))
-        self.linecut, = self.axes[1].plot(np.linspace(0,self.linecut_energy,np.size(zi)),zi,'r')
-        self.line_s, = self.axes[1].plot(0,zi[0],'yo')
-        self.line_f, = self.axes[1].plot(self.linecut_energy,zi[-1],'co')
-
-        self.max_line, = self.axes[1].plot([10*self.linecut_energy,10*self.linecut_energy],[0,0],'b')
-        self.left_HM_line, = self.axes[1].plot([10*self.linecut_energy,10*self.linecut_energy],[0,1],'b')
-        self.right_HM_line, = self.axes[1].plot([10*self.linecut_energy,10*self.linecut_energy],[0,1],'b')
-
-        self.axes[1].set_xlim([-0.05*self.linecut_energy,1.05*self.linecut_energy])
-        self.axes[1].set_ylim([np.min(z),np.max(z)])
-        self.axes[1].set_ylabel(r'$G (G_0=2e^2/h)$')
-        self.axes[1].set_xlabel('E_dot (meV assuming some lever arm)')
+        plt.colorbar(im,ax=self.axes[0],label=r'$G (G_0=2e^2/h)$')
+        
+        if len(self.axes)==2:
+            self.linecut_energy = 1000*(self.lever_x*(x_points[1]-x_points[0])+self.lever_y*(y_points[1]-y_points[0]))
+            self.linecut, = self.axes[1].plot(np.linspace(0,self.linecut_energy,np.size(zi)),zi,'r')
+            self.line_s, = self.axes[1].plot(0,zi[0],'yo')
+            self.line_f, = self.axes[1].plot(self.linecut_energy,zi[-1],'co')
+    
+            self.max_line, = self.axes[1].plot([10*self.linecut_energy,10*self.linecut_energy],[0,0],'b')
+            self.left_HM_line, = self.axes[1].plot([10*self.linecut_energy,10*self.linecut_energy],[0,1],'b')
+            self.right_HM_line, = self.axes[1].plot([10*self.linecut_energy,10*self.linecut_energy],[0,1],'b')
+    
+            self.axes[1].set_xlim([-0.05*self.linecut_energy,1.05*self.linecut_energy])
+            self.axes[1].set_ylim([np.min(z),np.max(z)])
+            self.axes[1].set_ylabel(r'$G (G_0=2e^2/h)$')
+            self.axes[1].set_xlabel('E_dot (meV assuming some lever arm)')
 
         self.y_sliders = []
         self.x_sliders = []
@@ -551,13 +584,26 @@ class PlotObject:
         self.fig1.canvas.mpl_connect('button_press_event', self._button_press_callback)
         self.fig1.canvas.mpl_connect('button_release_event', self._button_release_callback)
         self.fig1.canvas.mpl_connect('motion_notify_event', self._motion_notify_callback)
+        
+        # plt.rcParams.update({'axes.labelsize': 'xx-large'})
+        # plt.rcParams.update({'xtick.labelsize': 'xx-large'})
+        # plt.rcParams.update({'ytick.labelsize': 'xx-large'})
+        
+    def plot_difference(self):
+        x,y,z = self.x,self.y,self.z
+        z_diff = np.roll(z,1,axis=0)-z
+        
+        fig, ax = plt.subplots(ncols=1)
+
+        ax.imshow(z_diff,extent=[np.min(x),np.max(x),np.min(y),np.max(y)],aspect='auto')
+        plt.show()
   
 class MaxPlotter(PlotObject):
     # Class to plot multiple slopes and save them
     def __init__(self,ds,charge_stability,differential=False,cubic=True):
-        super().__init__(ds,charge_stability,differential=False,cubic=True)
-    def make_plot(self,vmax=None):
-        super().make_plot(vmax=vmax)
+        super().__init__(ds,charge_stability,differential=False,cubic=cubic)
+    def make_plot(self,vmax=None,lognorm = False):
+        super().make_plot(vmax=vmax,max_plotter=True,lognorm=lognorm)
         
         axmax = plt.axes([0.74, 0.2, 0.15, 0.02])
         self.bmax = Button(axmax, 'Calc Max:')
@@ -601,8 +647,8 @@ class HexPlotter(PlotObject):
     # Class to plot multiple slopes and save them
     def __init__(self,ds,charge_stability,differential=False,cubic=True):
         super().__init__(ds,charge_stability,differential=False,cubic=True)
-    def make_plot(self,vmax=None):
-        super().make_plot(vmax=vmax)
+    def make_plot(self,vmax=None,lognorm = False):
+        super().make_plot(vmax=vmax,lognorm=lognorm)
         
         ax_addvertex = plt.axes([0.71, 0.28, 0.15, 0.02])
         self.badd_vertex = Button(ax_addvertex, 'Add Vertex')
@@ -626,6 +672,8 @@ class HexPlotter(PlotObject):
         ax_save = plt.axes([0.71, 0.14, 0.15, 0.02])
         self.bsave_vertex = Button(ax_save, 'Save Graph')
         self.bsave_vertex.on_clicked(self._save_graph)
+        
+        return self.fig1, self.axes[0]
         
     def _add_vertex(self,event):
         x,y = self.x,self.y
