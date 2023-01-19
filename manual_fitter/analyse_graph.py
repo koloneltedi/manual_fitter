@@ -17,7 +17,9 @@ def vertID_to_posind(vertID,vertex_collection):
 
 def load_graph(UUID,file):
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    target_dir = current_dir+f"\\hexplotting\\UUID {UUID}"
+    target_dir = os.path.abspath(os.path.join(current_dir, '..','..','..', "Projects","DQW","Data Analysis"))
+    target_dir = target_dir+f"\\hexplotting\\UUID {UUID}"
+    
     os.chdir(target_dir)
     
     f = open(file, 'rb')
@@ -268,6 +270,51 @@ def correspondance_across_gates(sl_vs_gate_UUID,graph_file,value_dict={'BL':0},x
             crossing_slopes_list = crossing_slopes_list[:,~close_indices]
         plt.xticks(range(len(gate_list)),gate_list)
         plt.ylabel('Corresponding Slope')
+        
+        
+    ### Now coupling instead of slopes
+    plt.figure()
+    plt.title("Relative coupling of [GATE]-SL, for each dot")
+    
+    for gate in sl_vs_gate_UUID:
+        gate_names.append(gate)
+        UUID = sl_vs_gate_UUID[gate]
+        vertex_collection, edge_collection = load_graph(UUID,graph_file)
+        
+        value = value_dict[gate]
+        
+        crossing_slopes_collection = value_crossing_slopes(vertex_collection,edge_collection,value=value,xy=xy)
+        crossing_gate_list = []
+        for key in edge_collection.keys():
+            if not (key in crossing_master_dict.keys()):
+                crossing_master_dict[key] = {}
+            crossing_master_dict[key][gate] = [crossing_slopes_collection[key]['crossing_pos_list'],crossing_slopes_collection[key]['slope_list']]
+
+    for key in crossing_master_dict.keys():
+        if key != 'high':
+            gate_list = list(crossing_master_dict[key].keys())
+            slopes_per_gate_mask = []
+            slopes_per_gate = []
+            crossing_slopes_list = np.empty((2,0))
+            for index, gate in enumerate(gate_list):
+                temp = np.array(crossing_master_dict[key][gate])
+                slopes_per_gate_mask += (np.shape(temp)[1]*[index])
+                slopes_per_gate.append(np.shape(temp)[1])
+                crossing_slopes_list = np.append(crossing_slopes_list,temp,axis=1)
+                # pass
+            crossing_slopes_list = np.append(crossing_slopes_list,[slopes_per_gate_mask],axis=0)
+    
+            
+            corresponding_list = []
+            while np.size(crossing_slopes_list)>0:
+                crossings = crossing_slopes_list[0,:]
+                close_indices = (np.abs(crossings-crossings[0])<epsilon)
+                corresponding_set = crossing_slopes_list[:,close_indices]
+                plt.plot(corresponding_set[2,:],-1/corresponding_set[1,:],'o-',color=color_dict[key])
+                crossing_slopes_list = crossing_slopes_list[:,~close_indices]
+            plt.xticks(range(len(gate_list)),gate_list)
+            plt.ylim((0,1))
+            plt.ylabel('Relative Coupling')
             
 
 def slope_across_vertices(vertex_collection,edge_collection):
@@ -518,8 +565,7 @@ def dependance_at_occupation(vertex_collection,edge_collection,mapped_transition
         axes_x[i].set_ylim((-6,-1))
         axes_y[i].set_title(f"N={occupation_count}")
         axes_y[i].set_ylabel("")
-        axes_y[i].set_ylim((-6,-1))
-    
+        axes_y[i].set_ylim((-6,-1))  
     
 def charging_energy_between_transitions(transition_1,transition_2,vertex_collection,slope_fix=None):
     ### Calculating the charging energy at y-gate=0, in mV of the X-gate
@@ -624,6 +670,56 @@ def slope_across_transitions_main(vertex_collection,edge_collection,reservoir_tr
     
     for i in range(len(slope_collection)):
         plt.plot(slope_collection[i])
+        
+def interdot_at_occupation(vertex_collection,edge_collection,mapped_transitions):
+    
+    slopes_collection = slope_vs_gate(vertex_collection,edge_collection)
+    mean_slopes = []
+    for key in slopes_collection.keys():
+        slopes = slopes_collection[key]['x_y_slopes'][:,2]
+        mean = np.mean(slopes)
+        mean_slopes.append(mean)
+        
+    interdot_num = np.shape(mapped_transitions[2])[1]      
+    all_interdots = []
+    all_occupation_2 = []
+    for i in range(interdot_num):
+        occ_1 = mapped_transitions[2][0,i]
+        occ_2 = mapped_transitions[2][1,i]
+        
+        transition_1 = np.array((mapped_transitions[1][0,:] == occ_1)*(mapped_transitions[1][1,:] == occ_2-1))
+        transition_2 = np.array((mapped_transitions[0][0,:] == occ_1-1)*(mapped_transitions[0][1,:] == occ_2))
+        
+        if np.any(transition_1):
+            pair_1 = np.array(edge_collection['mid']['vertices_graph'])[transition_1][0]
+            slope_1, _ = edge_slope_centers(pair_1,vertex_collection)
+            mean_taken_1 = False
+            print(slope_1)
+        else:
+            slope_1 = mean_slopes[1]
+            mean_taken_1 = True
+        if np.any(transition_2):
+            pair_2 = np.array(edge_collection['low']['vertices_graph'])[transition_2][0]
+            slope_2, _ = edge_slope_centers(pair_2,vertex_collection)
+            mean_taken_2 = False
+            print(slope_2)
+        else:
+            slope_2 = mean_slopes[0]
+            print(slope_2)
+            input()
+            mean_taken_2 = True
+        
+        pair_interdot = np.array(edge_collection['high']['vertices_graph'])[i]
+        slope_interdot, _ = edge_slope_centers(pair_interdot,vertex_collection)
+        
+        
+        interdot = (1+slope_interdot*(-1/slope_1))/(1+slope_interdot*(-1/slope_2))
+        all_interdots.append(interdot)
+        all_occupation_2.append(occ_2)
+
+    plt.figure()
+    plt.plot(all_occupation_2,all_interdots,'.')        
+    plt.show()
 #%%
 #Nicest regime
 # UUID = 1667576935670283691
@@ -636,7 +732,7 @@ def slope_across_transitions_main(vertex_collection,edge_collection,reservoir_tr
 
 
 #other regime
-# UUID = 1666715736964283691 # BL
+# UUID = 1666715736964283691 # BL}
 # UUID = 1666728792682283691 # SSL
 # UUID = 1666741845596283691 # BLU
 # UUID = 1666755002626283691 # BLD
@@ -653,8 +749,8 @@ gate_cut_dict = {'BL':0,'SSL':0,'BLU':-0.237,'BLD':-0.178}
 def main():
     plt.close('all')
     
-    UUID = sl_vs_gate_UUID['SSL']
-    # UUID = 1667576935670283691
+    # UUID = sl_vs_gate_UUID['SSL']
+    UUID = 1667576935670283691
        
     graph_file = 'working_fit.pickle'
     # graph_file = 'good_region.pickle'
@@ -675,6 +771,7 @@ def main():
     mapped_transitions = determine_hexagons(vertex_collection,edge_collection)
     
     dependance_at_occupation(vertex_collection,edge_collection,mapped_transitions)
+    interdot_at_occupation(vertex_collection,edge_collection,mapped_transitions)
     
 if __name__ == "__main__":
     main()    
