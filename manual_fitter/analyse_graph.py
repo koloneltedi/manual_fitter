@@ -192,6 +192,20 @@ def mean_across_gates(sl_vs_gate_UUID,graph_file):
         plt.errorbar(plt_xaxis,mean_vs_gate[:,i,0],mean_vs_gate[:,i,1],fmt='-o',capsize=5,color=color_list[i])
     plt.xticks(plt_xaxis,gate_names)
     plt.ylabel('Mean Slope')
+    
+    ### Now coupling instead of slopes
+    plt.figure("Mean Relative Couplings")
+    plt.title("Mean relative coupling of [GATE]-P, for each dot")
+    
+    plt_xaxis = np.arange(np.shape(mean_vs_gate)[0])
+    for i in range(np.shape(mean_vs_gate)[1]-1):
+        std = mean_vs_gate[:,i,1]/(mean_vs_gate[:,i,0])**2
+        plt.errorbar(plt_xaxis,-1/mean_vs_gate[:,i,0],std,fmt='-o',capsize=5,color=color_list[i])
+    gate_names =['PB','$S_{SHT}$','$B_S$','$B_D$']
+    plt.xticks(plt_xaxis,gate_names)
+    plt.ylabel('Relative Coupling')
+    plt.ylim((0,1))
+    
 
 def value_crossing_slopes(vertex_collection,edge_collection,value=0,xy='y'):
     crossing_slopes_collection = {'cross_axis' : xy}
