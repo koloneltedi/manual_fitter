@@ -147,15 +147,16 @@ def make_energy_levels_BL_new(EC2 = 0.8,n_1=5,n_2=5,N_gateX=100,N_gateY=200):
         EC1[2] = 1.08
         EC1[3] = 1
         EC1[4] = 1.0
-        EC1[5] = 1.04
+        EC1[5] = 1.07
         # EC1[5] = 1.09
         EC1[6] = 1
-        EC1[7] = 1
-        EC1[8] = 1
-        EC1[9] = 1.05
-        EC1[10] = 1.1
+        EC1[7] = 0.95
+        EC1[8] = 0.95
+        EC1[9] = 1.1
+        EC1[10] = 0.9
         EC1[11:] = 0.8
         EC1[12:] = 0.8
+        EC1[12:] = 1
         # EC1[4] = 0.2
     else:
         EC1 = 1.0
@@ -178,10 +179,10 @@ def make_energy_levels_BL_new(EC2 = 0.8,n_1=5,n_2=5,N_gateX=100,N_gateY=200):
         EC12_base[2,1:] = 0.75
         EC12_base[3,1:] = 0.75
         EC12_base[4,1:] = 0.76
-        EC12_base[5,1:] = 0.79
-        EC12_base[6,1:] = 0.75
+        EC12_base[5,1:] = 0.78
+        EC12_base[6,1:] = 0.73
         EC12_base[7,1:] = 0.65
-        EC12_base[8,1:] = 0.62
+        EC12_base[8,1:] = 0.64
         EC12_base[9,1:] = 0.604
         EC12_base[10,1:] = 0.604
         EC12_base[11,1:] = 0.604
@@ -206,24 +207,27 @@ def make_energy_levels_BL_new(EC2 = 0.8,n_1=5,n_2=5,N_gateX=100,N_gateY=200):
         EC12_base[2,3:] = 0.2
         EC12_base[3,3:] = 0.2
         EC12_base[4,3:] = 0.25
-        EC12_base[5,3:] = 0.17
+        EC12_base[5,3:] = 0.15
         EC12_base[6,3:] = 0.22
-        EC12_base[7,3:] = 0.2
-        EC12_base[8,3:] = 0.17
-        EC12_base[9,3:] = 0.2     
+        EC12_base[7,3:] = 0.17
+        EC12_base[8,3:] = 0.2
+        EC12_base[9,3:] = 0.17     
         EC12_base[10,3:] = 0.2   
         EC12_base[11,3:] = 0.2   
         EC12_base[12,3:] = 0.2   
 
-        EC12_base[4,4:] = 0.35
-        EC12_base[5,4:] = 0.35
-        EC12_base[6,4:] = 0.3
-        EC12_base[7,4:] = 0.25
-        EC12_base[8,4:] = 0.25
-        EC12_base[9,4:] = 0.27     
-        EC12_base[10,4:] = 0.25   
-        EC12_base[11,4:] = 0.2   
-        EC12_base[12,4:] = 0.2   
+        EC12_base[1,4:] = 0.1
+        EC12_base[2,4:] = 0.13       
+        EC12_base[3,4:] = 0.13
+        EC12_base[4,4:] = 0.15
+        EC12_base[5,4:] = 0.2
+        EC12_base[6,4:] = 0.17
+        EC12_base[7,4:] = 0.1
+        EC12_base[8,4:] = 0.15
+        EC12_base[9,4:] = 0.1    
+        EC12_base[10,4:] = 0.1   
+        EC12_base[11,4:] = 0.15   
+        EC12_base[12,4:] = 0.15   
 
 
     else:
@@ -238,7 +242,7 @@ def make_energy_levels_BL_new(EC2 = 0.8,n_1=5,n_2=5,N_gateX=100,N_gateY=200):
     if manual_EC2 == True:
         EC2[:,2] = 0.9
         EC2[:,3] = 0.05
-        EC2[:,4:] = 1.2
+        EC2[:,4:] = 0.1
         EC2[:,5:] = 0.5
         pass
     else:
@@ -677,7 +681,7 @@ def get_detunings_BL_new(n_1=5,n_2=5,N_gateX=100,N_gateY=200,min_x=-10,max_x=5,m
     if slope_interdot_base_manual:
         slope_interdot_base[:,2] = -3.3
         slope_interdot_base[:,3:] = -2.4
-        slope_interdot_base[:,4:] = -3
+        slope_interdot_base[:,4:] = -2.4
         # slope_interdot_base[:,5] = -3
         slope_occ_var_i2 = 0
     else:
@@ -904,7 +908,7 @@ def make_sim():
         detuning_1, detuning_2,EC2 = get_detunings_SSL(n_1=n_1,n_2=n_2,N_gateX=N_gateX,N_gateY=N_gateY,min_x=min_x,max_x=max_x,min_y=min_y,max_y=max_y)
         mu_1, mu_2 = make_energy_levels_SSL(EC2=EC2,n_1=n_1,n_2=n_2,N_gateX=N_gateX,N_gateY=N_gateY)
     elif target == 'BL_new':
-        n_1, n_2 = 13,6
+        n_1, n_2 = 14,6
         detuning_1, detuning_2,EC2 = get_detunings_BL_new(n_1=n_1,n_2=n_2,N_gateX=N_gateX,N_gateY=N_gateY,min_x=min_x,max_x=max_x,min_y=min_y,max_y=max_y)
         mu_1, mu_2 = make_energy_levels_BL_new(EC2=EC2,n_1=n_1,n_2=n_2,N_gateX=N_gateX,N_gateY=N_gateY)
     elif target == 'test':
